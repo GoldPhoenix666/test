@@ -1,6 +1,57 @@
 <?php
-include('C:\xampp\connection\connect.php');
+include('connect.php');
 
+$suppliersquery = mysqli_query($conn, "SELECT * FROM `suppliers`");
+
+$suppliersrows = '';
+while ($row = mysqli_fetch_assoc($suppliersquery)) {
+    $suppliersrows .= 'activechartdata.addRow(["' . $row['suppliers'] . "  " . '", ' . $row['compliance'] . ']);';
+}
+
+//FIRST TABLE
+$detailsdata = mysqli_query($conn, "SELECT * FROM `inspection details`");
+
+while ($row = mysqli_fetch_assoc($detailsdata)) {
+$detailstable = '<table class="table table-striped table-bordered" style="float: none; margin: 0 auto;">
+			<tr>
+				<th>Date:</th><td>'.$row['date'].'</td><th>Category:</th><td>' .$row['category']. '</td>
+			</tr>
+			<tr>
+				<th>Inspector:</th><td>' .$row['inspector']. '</td><th>Location:</th><td>' .$row['location']. '</td>
+			</tr>
+			<tr>
+				<th>Supplier:</th><td>' .$row['supplier']. '</td><th></th><td></td>
+			</tr>';
+}
+$detailstable .= '</table>';
+
+
+
+
+
+
+//SECOND TABLE
+$productdata = mysqli_query($conn, "
+	SELECT `product`.*, `inspection data`.*, `suppliers`.* 
+	FROM `product` 
+	JOIN `inspection data` 
+	ON `inspection data`.`product` = `product`.`product` 
+	JOIN `suppliers` 
+	ON `suppliers`.`product` = `inspection data`.`product`");
+
+while ($row = mysqli_fetch_assoc($productdata)) {
+$producttable = '<table class="table table-striped table-bordered" style="float: none; margin: 0 auto;">
+			<tr>
+				<th>Product</th><th>Pack Size</th><th>Supplier</th><th>Date Code</th><th>Sample</th><th>N/C</th><th>Comments</th><th>Traceability Code</th>
+			</tr>
+
+			<tr>
+				<td>data</td><td>data2</td>
+			</tr>
+
+				';
+}
+$producttable .= '</table>';
 
 
 ?>
@@ -18,26 +69,32 @@ include('C:\xampp\connection\connect.php');
     <script src="js/bootstrap.min.js"></script>
 
 
-	<script type="text/javascript" >
-		google.charts.load('current', {'packages':['corechart']});
-		google.charts.setOnLoadCallback(drawChart);
+	<script type="text/javascript">
+  		google.charts.load('current', {'packages':['corechart']});
 
-		function drawChart() {
+		google.charts.setOnLoadCallback(drawVisualization);
 
-		var piedata = new google.visualization.DataTable();
+		function drawVisualization() {
 
-		piedata.addColumn('string', 'time');
-		piedata.addColumn('number', 'hours');
+     	var activechartdata = new google.visualization.DataTable();
+        activechartdata.addColumn('string', 'name');
+        activechartdata.addColumn('number', 'Quantity');
 
-<?php echo $personactivitiesdata ?>
+<?php echo $suppliersrows ?>  
 
-		var options = {title: 'List of all Infomation', sliceVisibilityThreshold: 0};
-
-		var chart = new google.visualization.PieChart(document.getElementById('piedatadiv'));
-		chart.draw(piedata, options);};
+		activechartdata.sort({column: 1, desc: false});
+		
+      	var options = {title: 'Regional performance by supplier', chartArea: {width: '60%'},
+      	hAxis: {
+      	title: 'Compliance (%)', minValue: 0},
+        vAxis: {title: 'Suppliers', direction:'1'},
+        annotation:{1:{style:'line'}}};
+      	var chart = new google.visualization.BarChart(document.getElementById('supplierschart'));
+      	chart.draw(activechartdata, options);
+		};
 	</script>
 
-
+<!--
 	<script type="text/javascript">
   
 		google.charts.setOnLoadCallback(drawVisualization);
@@ -48,7 +105,7 @@ include('C:\xampp\connection\connect.php');
         namechartdata.addColumn('string', 'name');
         namechartdata.addColumn('number', 'Quantity');
     
-<?php echo $peoplechart ?>  
+<?php // echo $peoplechart ?>  
 
       	var options = {title: 'Peoples activities', chartArea: {width: '60%'},
       	hAxis: {
@@ -59,7 +116,7 @@ include('C:\xampp\connection\connect.php');
       	chart.draw(namechartdata, options);
 		};
 	</script>
-
+-->
 
 </head>
 <body>
@@ -68,18 +125,17 @@ include('C:\xampp\connection\connect.php');
 
 <div class="row-fluid">
 	<div class="span9" style="border: 1px solid red;">
-
+		<?php echo $detailstable ?>	
 	</div>
 
 
 	<div class="span3" style="border: 1px solid blue">
-		<?php echo $peopletable ?>
 	</div>
 </div>
 
 <div class="row-fluid" >
 	<div class="span9" style="border: 1px solid green">
-		
+		<?php echo $producttable ?>
 	</div>
 </div>
 <br />
@@ -89,49 +145,11 @@ include('C:\xampp\connection\connect.php');
 		
 	</div>
 	
-
-	<div class="span3" style="border: 1px solid blue">
-		<?php echo $occurrencetable ?>
+<div class="span3" style="border: 1px solid blue">
+		<div id="supplierschart" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;"></div>
 	</div>
 </div>
 
-<div class="row-fluid">
-	<div class="span6" style="border: 0px red solid; text-align: center;">
-		<h3>Add Information here</h3>
-		<form action="newentry.php" method="post" style="float: none; margin: 0 auto;" >
-			<label>Activity:</label>
-				<input type="text" name="activity" required>
-			<label>Hours:</label>
-					<input type="number" name="hours" required>
-			<label>Minutes:</label>
-				<input type="number" name="minutes" min="0" max="59" required>
-			<label>Name:</label>
-				<select name="personid">
-
-				<?php
-				$newentry = mysqli_query($conn, "SELECT * FROM `personname`");
-				$row = mysqli_num_rows($newentry);
-				while ($row = mysqli_fetch_array($newentry)){
-				echo "<option value='" . $row['personid'] . "'>". $row['personname']  . "</option>";
-				};?>
-
- 				</select>
-				<br />
-			<button type="submit" style="margin-top:-10px;" class="btn btn-success btn-small">Add</button>
-		</form>
-</div>
-
-<div class="span6" style="border: 0px red solid;">
-	<form action="addname.php" method="post" style="float: none; margin: 0 auto; text-align: center;">
-		<h3>Add User</h3>		
-		<label>Username:</label>
-			<input type="text" name="personname" required />
-			<br />
- 		<button type="submit" style="margin-top:-10px;" class="btn btn-success btn-small">Add</button>
-		<br />
-	</form>
-</div>
-</div>
 
 
 
