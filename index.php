@@ -32,26 +32,84 @@ $detailstable .= '</table>';
 
 //SECOND TABLE
 $productdata = mysqli_query($conn, "
-	SELECT `product`.*, `inspection data`.*, `suppliers`.* 
-	FROM `product` 
+	SELECT `products`.*, `inspection data`.*, `suppliers`.* 
+	FROM `products` 
 	JOIN `inspection data` 
-	ON `inspection data`.`product` = `product`.`product` 
+	ON `inspection data`.`product` = `products`.`product` 
 	JOIN `suppliers` 
-	ON `suppliers`.`product` = `inspection data`.`product`");
+	ON `suppliers`.`product` = `inspection data`.`product`
+	WHERE `inspection data`.`failed` = 'yes'
+	");
+
+
+$producttable = '<table class="table table-striped table-bordered" style="float: none; margin: 0 auto;">
+			<tr style="color:white;">
+				<th style="text-align:center; background-color:#008B8B">Product</th>
+				<th style="text-align:center; background-color:#008B8B"">Pack Size</th>
+				<th style="text-align:center; background-color:#008B8B"">Supplier</th>
+				<th style="text-align:center; background-color:#008B8B"">Date Code</th>
+				<th style="text-align:center; background-color:#008B8B"">Sample</th>
+				<th style="text-align:center; background-color:#008B8B"">&nbsp;&nbsp;&nbsp;N/C&nbsp;&nbsp;&nbsp;</th>
+				<th style="text-align:center; background-color:#008B8B"">Comments</th>
+				<th style="text-align:center; background-color:#008B8B"">Traceability Code</th>
+			</tr>
+';
 
 while ($row = mysqli_fetch_assoc($productdata)) {
-$producttable = '<table class="table table-striped table-bordered" style="float: none; margin: 0 auto;">
-			<tr>
-				<th>Product</th><th>Pack Size</th><th>Supplier</th><th>Date Code</th><th>Sample</th><th>N/C</th><th>Comments</th><th>Traceability Code</th>
+$producttable .=
+			'<tr>
+				<td>'.$row['product'].'</td>
+				<td>'.$row['pack size'].'</td>
+				<td>'.$row['suppliers'].'</td>
+				<td style="text-align:center;">'.$row['date'].'</td>
+				<td style="text-align:center;">'.$row['sample'].'</td>
+				<td style="text-align:center;">'.$row['nc'].'</td>
+				<td>'.$row['nc'].' x '.$row['comments'].'</td>
+				<td>'.$row['trace'].'</td>
 			</tr>
 
-			<tr>
-				<td>data</td><td>data2</td>
-			</tr>
 
 				';
 }
-$producttable .= '</table>';
+$producttable .= '
+			<tr>
+				<td></td>
+			</tr>
+
+			<tr>
+				<td>Remaining Sample</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			</tr>
+
+			<tr>
+				<td>Total</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			</tr>
+
+			<tr>
+				<td>Performance Level for Inspection</td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+				<td></td>
+			</tr>
+</table>
+';
 
 
 ?>
@@ -118,13 +176,20 @@ $producttable .= '</table>';
 	</script>
 -->
 
+	<style type="text/css">
+body{
+/*	width:1100px;*/
+}
+
+	</style>
+	
 </head>
 <body>
 
 <h1>Summary Inspection Report - Atherstone</h1>
 
 <div class="row-fluid">
-	<div class="span9" style="border: 1px solid red;">
+	<div class="span9" style="border: 0px solid red;">
 		<?php echo $detailstable ?>	
 	</div>
 
@@ -134,7 +199,7 @@ $producttable .= '</table>';
 </div>
 
 <div class="row-fluid" >
-	<div class="span9" style="border: 1px solid green">
+	<div class="span9" style="border: 0px solid green">
 		<?php echo $producttable ?>
 	</div>
 </div>
