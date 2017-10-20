@@ -1,5 +1,5 @@
 <?php
-include('connect.php');
+include('../../includes/connect.php');
 
 $suppliersquery = mysqli_query($conn, "SELECT * FROM `suppliers`");
 
@@ -8,15 +8,36 @@ while ($row = mysqli_fetch_assoc($suppliersquery)) {
     $suppliersrows .= 'activechartdata.addRow(["' . $row['suppliers'] . "  " . '", ' . $row['compliance'] . ']);';
 }
 
+
+$grandtotal = mysqli_query($conn, "SELECT ((SUM(`sample`) - SUM(`nc`)))* 100 / (SELECT SUM(`sample`) FROM `inspection data` ) AS `percent` FROM `inspection data`");
+$percentrow = mysqli_fetch_assoc($grandtotal); 
+$totalsum = $percentrow['percent'];
+
+
 $compliancechart = '';
-while ($row = mysqli_fetch_assoc($grandtotal)) {
-    $compliancechart .= 'piedata.addRow(["' . $row['percent'] . "  " . $row['hours'] . " hours " .
-    $row['percent'] . "%" . '", ' . $row['hours'] . ']);';
+while ($row = mysqli_fetch_assoc($totalsum)) {
+    $compliancechart .= 'piedata.addRow([' . $row['percent'] . ']);';
 }
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+
+$remainingtotal = mysqli_query($conn, "SELECT SUM(`sample`) - (SELECT SUM(`sample`) FROM `inspection data` WHERE `inspection data`.`failed` = 'yes' ) AS `remain` FROM `inspection data`");
+$newrow = mysqli_fetch_assoc($remainingtotal); 
+$sampleremain = $newrow['remain'];
+
+
+$totalquery = mysqli_query($conn, "SELECT SUM(`sample`) AS `sampletotal` FROM `inspection data`");
+$newrow = mysqli_fetch_assoc($totalquery); 
+$samplesum = $newrow['sampletotal'];
+
+
+$badbatchquery = mysqli_query($conn, "SELECT SUM(`nc`) AS `nctotal` FROM `inspection data`");
+$newrow = mysqli_fetch_assoc($badbatchquery); 
+$ncsum = $newrow['nctotal'];
+
+$percentagequery = mysqli_query($conn, "SELECT SUM(`sample`) - SUM(`nc`) FROM `inspection data`  AS `percentage`");
+
+
+
 
 //FIRST TABLE
 $detailsdata = mysqli_query($conn, "SELECT * FROM `inspection details`");
@@ -45,20 +66,6 @@ $productdata = mysqli_query($conn, "
 	ON `suppliers`.`product` = `inspection data`.`product`
 	WHERE `inspection data`.`failed` = 'yes'
 	");
-
-$totalquery = mysqli_query($conn, "SELECT SUM(`sample`) AS `sampletotal` FROM `inspection data`");
-$newrow = mysqli_fetch_assoc($totalquery); 
-$samplesum = $newrow['sampletotal'];
-
-$badbatchquery = mysqli_query($conn, "SELECT SUM(`nc`) AS `nctotal` FROM `inspection data`");
-$newrow = mysqli_fetch_assoc($badbatchquery); 
-$ncsum = $newrow['nctotal'];
-
-$percentagequery = mysqli_query($conn, "SELECT SUM(`sample`) - SUM(`nc`) FROM `inspection data`  AS `percentage`");
-
-$grandtotal = mysqli_query($conn, "SELECT ((SUM(`sample`) - SUM(`nc`)))* 100 / (SELECT SUM(`sample`) FROM `inspection data` ) AS `percent` FROM `inspection data`");
-$percentrow = mysqli_fetch_assoc($grandtotal); 
-$totalsum = $percentrow['percent'];
 
 $producttable = '<table class="table table-striped table-bordered" style="float: none; margin: 0 auto;">
 			<tr style="color:white;">
@@ -99,8 +106,8 @@ $producttable .= '
 				<td></td>
 				<td></td>
 				<td></td>
-				<td></td>
-				<td></td>
+				<td style="text-align:center;">'.$sampleremain.'</td>
+				<td style="text-align:center;">0</td>
 				<td></td>
 				<td></td>
 			</tr>';
@@ -126,7 +133,7 @@ $producttable .= '
 				<td></td>
 				<td></td>
 				<td></td>
-				<td style="text-align:center;">'.$totalsum.'</td>
+				<td style="text-align:center;">'.$totalsum.'%</td>
 				<td></td>
 				<td></td>
 				<td></td>
@@ -147,27 +154,26 @@ $producttable .= '
     <script src="http://code.jquery.com/jquery.js"></script>
     <script src="js/bootstrap.min.js"></script>
 
-	<script type="text/javascript">
-  
-		google.charts.setOnLoadCallback(drawVisualization);
+	<script type="text/javascript" >
+		google.charts.load('current', {'packages':['corechart']});
+		google.charts.setOnLoadCallback(drawChart);
 
-		function drawVisualization() {
+		function drawChart() {
 
-     	var namechartdata = new google.visualization.DataTable();
-        namechartdata.addColumn('string', 'name');
-        namechartdata.addColumn('number', 'Quantity');
-    
-<?php echo $compliancechart ?>  
+		var piedata = new google.visualization.DataTable();
 
-      	var options = {title: 'Peoples activities', chartArea: {width: '60%'},
-      	hAxis: {
-		title: '# of Activities', minValue: 0},
-        vAxis: {title: 'Name', direction:'-1'},
-        annotation:{1:{style:'line'}}};
-      	var chart = new google.visualization.BarChart(document.getElementById('peoplediv'));
-      	chart.draw(namechartdata, options);
-		};
+		piedata.addColumn('string', 'time');
+		piedata.addColumn('number', 'hours');
+
+<?php echo $compliancechart ?>
+
+		var options = {title: 'Compliance with Specifications', sliceVisibilityThreshold: 0};
+
+		var chart = new google.visualization.PieChart(document.getElementById('percentdiv'));
+		chart.draw(piedata, options);};
 	</script>
+
+
 
 	<script type="text/javascript">
   		google.charts.load('current', {'packages':['corechart']});
@@ -191,7 +197,7 @@ $producttable .= '
         annotation:{1:{style:'line'}}};
       	var chart = new google.visualization.BarChart(document.getElementById('supplierschart'));
       	chart.draw(activechartdata, options);
-		};
+		}
 	</script>
 
 	<style type="text/css">
@@ -213,7 +219,7 @@ body{
 
 
 	<div class="span3" style="border: 1px solid blue">
-
+		<div id="percentdiv" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;"></div>
 	</div>
 </div>
 
@@ -222,17 +228,30 @@ body{
 		<?php echo $producttable ?>
 	</div>
 	<div class="span3" style="border: 1px solid blue">
-		<div id="supplierschart" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;"></div>
+		<div id="supplierschart" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;">
+
+		</div>
 	</div>
 </div>
 <br />
 
 <div class="row-fluid">
 	<div class="span9" style="border: 1px solid red">
-		
-	</div>
-	
+		<div style="display: inline-block;" >
+<?php
+	$data = mysqli_query($conn, "SELECT * FROM `images` LEFT JOIN `inspection data` ON `images`.`product` = `inspection data`.`product` ORDER BY `image` ASC");
+	while($newrow2 = mysqli_fetch_assoc($data))
+{
+	$imglocation = $newrow2['location'];
 
+	echo '<p>'.$newrow2['product'].' with '.$newrow2['comments'].'</p>';
+	echo '<img height="100px" width="100px" alt="img" src="'.$imglocation.'"> ';
+
+}
+?> 	
+
+		</div>
+	</div>
 </div>
 </body>
 </html>
