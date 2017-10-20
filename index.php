@@ -8,6 +8,16 @@ while ($row = mysqli_fetch_assoc($suppliersquery)) {
     $suppliersrows .= 'activechartdata.addRow(["' . $row['suppliers'] . "  " . '", ' . $row['compliance'] . ']);';
 }
 
+$compliancechart = '';
+while ($row = mysqli_fetch_assoc($grandtotal)) {
+    $compliancechart .= 'piedata.addRow(["' . $row['percent'] . "  " . $row['hours'] . " hours " .
+    $row['percent'] . "%" . '", ' . $row['hours'] . ']);';
+}
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 //FIRST TABLE
 $detailsdata = mysqli_query($conn, "SELECT * FROM `inspection details`");
 
@@ -25,11 +35,6 @@ $detailstable = '<table class="table table-striped table-bordered" style="float:
 }
 $detailstable .= '</table>';
 
-
-
-
-
-
 //SECOND TABLE
 $productdata = mysqli_query($conn, "
 	SELECT `products`.*, `inspection data`.*, `suppliers`.* 
@@ -41,6 +46,19 @@ $productdata = mysqli_query($conn, "
 	WHERE `inspection data`.`failed` = 'yes'
 	");
 
+$totalquery = mysqli_query($conn, "SELECT SUM(`sample`) AS `sampletotal` FROM `inspection data`");
+$newrow = mysqli_fetch_assoc($totalquery); 
+$samplesum = $newrow['sampletotal'];
+
+$badbatchquery = mysqli_query($conn, "SELECT SUM(`nc`) AS `nctotal` FROM `inspection data`");
+$newrow = mysqli_fetch_assoc($badbatchquery); 
+$ncsum = $newrow['nctotal'];
+
+$percentagequery = mysqli_query($conn, "SELECT SUM(`sample`) - SUM(`nc`) FROM `inspection data`  AS `percentage`");
+
+$grandtotal = mysqli_query($conn, "SELECT ((SUM(`sample`) - SUM(`nc`)))* 100 / (SELECT SUM(`sample`) FROM `inspection data` ) AS `percent` FROM `inspection data`");
+$percentrow = mysqli_fetch_assoc($grandtotal); 
+$totalsum = $percentrow['percent'];
 
 $producttable = '<table class="table table-striped table-bordered" style="float: none; margin: 0 auto;">
 			<tr style="color:white;">
@@ -66,16 +84,16 @@ $producttable .=
 				<td style="text-align:center;">'.$row['nc'].'</td>
 				<td>'.$row['nc'].' x '.$row['comments'].'</td>
 				<td>'.$row['trace'].'</td>
-			</tr>
-
-
-				';
+			</tr>';
 }
+
 $producttable .= '
 			<tr>
 				<td></td>
-			</tr>
+			</tr>';
 
+
+$producttable .= '
 			<tr>
 				<td>Remaining Sample</td>
 				<td></td>
@@ -85,33 +103,36 @@ $producttable .= '
 				<td></td>
 				<td></td>
 				<td></td>
-			</tr>
+			</tr>';
 
+
+$producttable .= '
 			<tr>
 				<td>Total</td>
 				<td></td>
 				<td></td>
 				<td></td>
+				<td style="text-align:center;">'.$samplesum.'</td>
+				<td style="text-align:center;">'.$ncsum.'</td>
 				<td></td>
 				<td></td>
-				<td></td>
-				<td></td>
-			</tr>
+			</tr>';		
 
+
+
+$producttable .= '
 			<tr>
 				<td>Performance Level for Inspection</td>
 				<td></td>
 				<td></td>
 				<td></td>
-				<td></td>
+				<td style="text-align:center;">'.$totalsum.'</td>
 				<td></td>
 				<td></td>
 				<td></td>
 			</tr>
 </table>
 ';
-
-
 ?>
 
 <!DOCTYPE html>
@@ -126,6 +147,27 @@ $producttable .= '
     <script src="http://code.jquery.com/jquery.js"></script>
     <script src="js/bootstrap.min.js"></script>
 
+	<script type="text/javascript">
+  
+		google.charts.setOnLoadCallback(drawVisualization);
+
+		function drawVisualization() {
+
+     	var namechartdata = new google.visualization.DataTable();
+        namechartdata.addColumn('string', 'name');
+        namechartdata.addColumn('number', 'Quantity');
+    
+<?php echo $compliancechart ?>  
+
+      	var options = {title: 'Peoples activities', chartArea: {width: '60%'},
+      	hAxis: {
+		title: '# of Activities', minValue: 0},
+        vAxis: {title: 'Name', direction:'-1'},
+        annotation:{1:{style:'line'}}};
+      	var chart = new google.visualization.BarChart(document.getElementById('peoplediv'));
+      	chart.draw(namechartdata, options);
+		};
+	</script>
 
 	<script type="text/javascript">
   		google.charts.load('current', {'packages':['corechart']});
@@ -152,30 +194,6 @@ $producttable .= '
 		};
 	</script>
 
-<!--
-	<script type="text/javascript">
-  
-		google.charts.setOnLoadCallback(drawVisualization);
-
-		function drawVisualization() {
-
-     	var namechartdata = new google.visualization.DataTable();
-        namechartdata.addColumn('string', 'name');
-        namechartdata.addColumn('number', 'Quantity');
-    
-<?php // echo $peoplechart ?>  
-
-      	var options = {title: 'Peoples activities', chartArea: {width: '60%'},
-      	hAxis: {
-		title: '# of Activities', minValue: 0},
-        vAxis: {title: 'Name', direction:'-1'},
-        annotation:{1:{style:'line'}}};
-      	var chart = new google.visualization.BarChart(document.getElementById('peoplediv'));
-      	chart.draw(namechartdata, options);
-		};
-	</script>
--->
-
 	<style type="text/css">
 body{
 /*	width:1100px;*/
@@ -195,12 +213,16 @@ body{
 
 
 	<div class="span3" style="border: 1px solid blue">
+
 	</div>
 </div>
 
 <div class="row-fluid" >
 	<div class="span9" style="border: 0px solid green">
 		<?php echo $producttable ?>
+	</div>
+	<div class="span3" style="border: 1px solid blue">
+		<div id="supplierschart" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;"></div>
 	</div>
 </div>
 <br />
@@ -210,14 +232,7 @@ body{
 		
 	</div>
 	
-<div class="span3" style="border: 1px solid blue">
-		<div id="supplierschart" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;"></div>
-	</div>
+
 </div>
-
-
-
-
-
 </body>
 </html>
