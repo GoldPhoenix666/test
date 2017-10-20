@@ -8,7 +8,6 @@ while ($row = mysqli_fetch_assoc($suppliersquery)) {
     $suppliersrows .= 'activechartdata.addRow(["' . $row['suppliers'] . "  " . '", ' . $row['compliance'] . ']);';
 }
 
-
 $grandtotal = mysqli_query($conn, "SELECT ((SUM(`sample`) - SUM(`nc`)))* 100 / (SELECT SUM(`sample`) FROM `inspection data` ) AS `percent` FROM `inspection data`");
 $percentrow = mysqli_fetch_assoc($grandtotal); 
 $totalsum = $percentrow['percent'];
@@ -16,9 +15,8 @@ $totalsum = $percentrow['percent'];
 
 $compliancechart = '';
 while ($row = mysqli_fetch_assoc($totalsum)) {
-    $compliancechart .= 'piedata.addRow([' . $row['percent'] . ']);';
+    $compliancechart .= 'piedata.addRow([' . $row['percent'] . "Within Specifications" . ']);';
 }
-
 
 $remainingtotal = mysqli_query($conn, "SELECT SUM(`sample`) - (SELECT SUM(`sample`) FROM `inspection data` WHERE `inspection data`.`failed` = 'yes' ) AS `remain` FROM `inspection data`");
 $newrow = mysqli_fetch_assoc($remainingtotal); 
@@ -102,41 +100,21 @@ $producttable .= '
 
 $producttable .= '
 			<tr>
-				<td>Remaining Sample</td>
-				<td></td>
-				<td></td>
-				<td></td>
-				<td style="text-align:center;">'.$sampleremain.'</td>
-				<td style="text-align:center;">0</td>
-				<td></td>
-				<td></td>
+				<td>Remaining Sample</td><td></td><td></td><td></td><td style="text-align:center;">'.$sampleremain.'</td><td style="text-align:center;">0</td><td></td><td></td>
 			</tr>';
 
 
 $producttable .= '
 			<tr>
-				<td>Total</td>
-				<td></td>
-				<td></td>
-				<td></td>
-				<td style="text-align:center;">'.$samplesum.'</td>
-				<td style="text-align:center;">'.$ncsum.'</td>
-				<td></td>
-				<td></td>
+				<td>Total</td><td></td><td></td><td></td><td style="text-align:center;">'.$samplesum.'</td>
+				<td style="text-align:center;">'.$ncsum.'</td><td></td><td></td>
 			</tr>';		
 
 
 
 $producttable .= '
 			<tr>
-				<td>Performance Level for Inspection</td>
-				<td></td>
-				<td></td>
-				<td></td>
-				<td style="text-align:center;">'.$totalsum.'%</td>
-				<td></td>
-				<td></td>
-				<td></td>
+				<td>Performance Level for Inspection</td><td></td><td></td><td></td><td style="text-align:center;">'.$totalsum.'%</td><td></td><td></td><td></td>
 			</tr>
 </table>
 ';
@@ -163,7 +141,7 @@ $producttable .= '
 		var piedata = new google.visualization.DataTable();
 
 		piedata.addColumn('string', 'time');
-		piedata.addColumn('number', 'hours');
+		piedata.addColumn('number', 'percent');
 
 <?php echo $compliancechart ?>
 
@@ -218,7 +196,7 @@ body{
 	</div>
 
 
-	<div class="span3" style="border: 1px solid blue">
+	<div class="span3" style="border: 1px solid lightgrey; border-radius: 5px;">
 		<div id="percentdiv" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;"></div>
 	</div>
 </div>
@@ -227,7 +205,7 @@ body{
 	<div class="span9" style="border: 0px solid green">
 		<?php echo $producttable ?>
 	</div>
-	<div class="span3" style="border: 1px solid blue">
+	<div class="span3" style="border: 1px solid lightgrey; border-radius: 5px;">
 		<div id="supplierschart" style="border-top:20px solid lightgrey; border-radius: 5px; min-height:200px;">
 
 		</div>
@@ -236,16 +214,16 @@ body{
 <br />
 
 <div class="row-fluid">
-	<div class="span9" style="border: 1px solid red">
-		<div style="display: inline-block;" >
+	<div class="span9" style="border: 1px solid lightgrey; border-radius: 5px;">
+		<div>
 <?php
 	$data = mysqli_query($conn, "SELECT * FROM `images` LEFT JOIN `inspection data` ON `images`.`product` = `inspection data`.`product` ORDER BY `image` ASC");
 	while($newrow2 = mysqli_fetch_assoc($data))
 {
 	$imglocation = $newrow2['location'];
 
-	echo '<p>'.$newrow2['product'].' with '.$newrow2['comments'].'</p>';
-	echo '<img height="100px" width="100px" alt="img" src="'.$imglocation.'"> ';
+	echo '<div style="display: inline-block; margin-right:50px;"><p style="display: inline-block;" >'.$newrow2['product'].' with '.$newrow2['comments'].'</p><br />';
+	echo '<img height="150px" width="150px" alt="img" src="'.$imglocation.'"> </div>';
 
 }
 ?> 	
